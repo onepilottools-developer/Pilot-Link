@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>One Pilot Bookmark</title>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; }
+
+  /* ===== MODES ===== */
+  body { --bg: #fff; --bg2: #f9fafb; --bg3: #f3f4f6; --border: #e5e7eb; --text: #374151; --text2: #111827; --text3: #6b7280; --card-shadow: 0 30px 25px rgba(0,0,0,0.12); --input-border: #d1d5db; }
+  body.mode-dark { --bg: #111827; --bg2: #1f2937; --bg3: #374151; --border: #374151; --text: #d1d5db; --text2: #f9fafb; --text3: #9ca3af; --card-shadow: 0 4px 24px rgba(0,0,0,0.4); --input-border: #4b5563; }
+  body.mode-gray { --bg: #e5e7eb; --bg2: #d1d5db; --bg3: #c1c9d2; --border: #9ca3af; --text: #374151; --text2: #111827; --text3: #6b7280; --card-shadow: 0 20px 40px rgba(0,0,0,0.08); --input-border: #9ca3af; }
+
+  body { background: var(--bg); color: var(--text); transition: background 0.3s, color 0.3s; }
+  .app-container, .modal, .ai-brain-drawer, .ai-brain-msgs, .ai-input-box, #tabContextMenu { background: var(--bg) !important; color: var(--text) !important; transition: background 0.3s; }
+  .bookmark-card { background: var(--bg2) !important; box-shadow: var(--card-shadow) !important; }
+  .bookmark-icon { background: var(--bg3) !important; }
+  .bookmark-name, header.bookmarks-header h2 { color: var(--text2) !important; }
+  input[type="text"], input[type="url"], input[type="search"] { background: var(--bg2) !important; color: var(--text2) !important; border-color: var(--input-border) !important; }
+  .tabs-container { border-bottom-color: var(--border) !important; }
+  .tab-item { color: var(--text3) !important; }
+  .tab-item.active { color: #4f46e5 !important; }
+  label { color: var(--text3) !important; }
+  .add-tab-btn { background: var(--bg3) !important; color: var(--text) !important; }
+  .ai-msg { background: var(--bg2) !important; border-color: var(--border) !important; color: var(--text) !important; }
+  .modal { background: var(--bg) !important; }
+  .tab-locked-screen h3 { color: var(--text2) !important; }
+  .tab-locked-screen p { color: var(--text3) !important; }
+  .tab-unlock-form input { background: var(--bg2) !important; color: var(--text2) !important; border-color: var(--input-border) !important; }
+  .lock-big-icon { background: var(--bg3) !important; }
+  .bookmark-context-menu { background: var(--bg2) !important; }
+  .bookmark-context-menu button { color: var(--text3) !important; }
+
+  /* Sticky header */
+  .sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--bg);
+    padding: 16px 24px 0;
+    margin: 0 -24px;
+    transition: background 0.3s;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+
+  /* Mode switcher button */
+  #modeSwitcher { display: flex; align-items: center; gap: 6px; background: var(--bg2); border: 1.5px solid var(--border); border-radius: 50px; padding: 6px 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); transition: background 0.3s; }
+  .mode-btn { width: 30px; height: 30px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+  .mode-btn:hover { transform: scale(1.15); }
+  .mode-btn.active-mode { border-color: #6366f1; box-shadow: 0 0 0 2px #6366f133; }
+  .mode-btn.m-white { background: #ffffff; }
+  .mode-btn.m-gray  { background: #9ca3af; }
+  .mode-btn.m-dark  { background: #1f2937; }
+
+  body {
+    margin: 0; padding: 0; overflow-y: scroll;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    user-select: none; -webkit-font-smoothing: antialiased;
+    display: flex; flex-direction: column; min-height: 100vh;
+  }
+  .app-container { max-width: 1250px; width: 100%; margin: 32px auto 16px; padding: 0 24px; flex: 1; }
+
+  header.bookmarks-header {
+    display: flex; flex-wrap: nowrap; gap: 16px 24px;
+    align-items: flex-end; justify-content: space-between; margin-bottom: 20px;
+  }
+  header.bookmarks-header h2 { font-weight: 700; color: #111827; margin: 0; white-space: nowrap; }
+  .input-group { flex: 1; min-width: 120px; }
+  label { display: block; font-weight: 500; margin-bottom: 6px; color: #4b5563; font-size: 0.875rem; }
+  input[type="text"], input[type="url"], input[type="search"] {
+    width: 100%; padding: 10px 14px; font-size: 1rem; border: 1.5px solid #d1d5db; border-radius: 0.5rem; outline: none;
+  }
+  input:focus { border-color: #6366f1; }
+  .action-buttons { display: flex; flex-direction: column; gap: 10px; align-items: flex-end; flex-shrink: 0; }
+  .button-row { display: flex; gap: 10px; }
+  button {
+    border: none; font-weight: 600; font-size: 1rem; padding: 12px 20px; border-radius: 0.75rem; cursor: pointer; color: #fff; white-space: nowrap;
+  }
+  button#addBookmarkBtn { background: linear-gradient(135deg, #6366f1, #818cf8); }
+  button.backup-btn { background: #4b5563; }
+  button#restoreBtn { background: #10b981; }
+  .ai-brain-toggle-btn { background: #6366f1; font-size: 0.9rem; padding: 10px 16px; }
+
+  /* TABS */
+  .tabs-container { display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #e5e5e5; margin-bottom: 32px; padding-bottom: 5px; overflow-x: auto; }
+  .tab-item { padding: 10px 20px; font-size: 1rem; color: #6b7280; cursor: pointer; border-bottom: 3px solid transparent; white-space: nowrap; transition: 0.2s; display: flex; align-items: center; gap: 4px; }
+  .tab-item.active { color: #4f46e5; border-bottom-color: #4f46e5; font-weight: 600; }
+  .add-tab-btn { background: #f3f4f6; color: #4b5563; width: 35px; height: 35px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; border: none; flex-shrink: 0; padding: 0; }
+  .add-tab-btn:hover { background: #e5e7eb; }
+
+  /* TAB CONTEXT MENU */
+  #tabContextMenu {
+    position: fixed; z-index: 99999;
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.18); padding: 8px; min-width: 185px;
+    display: none; flex-direction: column; gap: 2px;
+  }
+  #tabContextMenu.show { display: flex; }
+  .tab-ctx-item {
+    display: flex; align-items: center; gap: 8px; padding: 9px 12px;
+    font-size: 0.875rem; color: #374151; border-radius: 7px; cursor: pointer;
+    background: none; border: none; font-weight: 500; width: 100%; text-align: left;
+  }
+  .tab-ctx-item:hover { background: #f3f4f6; }
+  .tab-ctx-item.danger { color: #ef4444; }
+  .tab-ctx-item.danger:hover { background: #fef2f2; }
+  .tab-ctx-item .material-icons { font-size: 16px; }
+  .color-picker-row { display: flex; gap: 6px; padding: 6px 10px 10px; flex-wrap: wrap; border-bottom: 1px solid #f3f4f6; margin-bottom: 4px; }
+  .color-dot { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: 0.15s; }
+  .color-dot:hover, .color-dot.selected { border-color: #374151; transform: scale(1.2); }
+
+  /* TAB DRAG */
+  .tab-item.tab-dragging { opacity: 0.35; }
+  .tab-item.tab-drag-over { background: #eef2ff; border-radius: 8px; }
+  .tab-item.cross-drag-over { background: #eef2ff; border-bottom-color: #6366f1; color: #4f46e5; }
+
+  /* BOOKMARKS GRID */
+  .bookmarks-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(100px,1fr)); gap: 24px; padding-bottom: 40px; }
+  
+  .bookmark-card {
+    position: relative;
+    cursor: pointer;
+    background: #ffffff;
+    padding: 14px 14px;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08),
+                0 1px 2px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    height: auto;
+    min-height: 105px;
+  }
+
+  .bookmark-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12),
+                0 4px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .bookmark-card:active {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1),
+                0 2px 4px rgba(0, 0, 0, 0.06);
+  }
+  
+  .bookmark-card.dragging { 
+    opacity: 0.4; 
+    border: 2px dashed #6366f1;
+  }
+  
+  .bookmark-card.drag-over { 
+    border-left: 5px solid #6366f1;
+  }
+  
+  .bookmark-icon { 
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    background: #f8fafc; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    overflow: hidden; 
+    pointer-events: none;
+    transition: transform 0.3s ease;
+  }
+  
+  .bookmark-card:hover .bookmark-icon {
+    transform: scale(1.1);
+  }
+  
+  .bookmark-icon img { 
+    max-width: 28px;
+    max-height: 28px;
+    object-fit: contain; 
+  }
+  
+  .bookmark-name { 
+    font-weight: 600; 
+    font-size: 0.875rem;
+    text-align: center; 
+    color: #1f2937; 
+    overflow: hidden; 
+    white-space: nowrap; 
+    text-overflow: ellipsis; 
+    width: 100%; 
+    pointer-events: none;
+    transition: color 0.2s ease;
+  }
+  
+  .bookmark-card:hover .bookmark-name {
+    color: #4f46e5;
+  }
+  
+  .bookmark-context-menu {
+    position: absolute; 
+    top: 8px; 
+    right: 10px; 
+    display: flex; 
+    gap: 6px; 
+    background: rgba(255,255,255,0.98);
+    border-radius: 10px; 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12); 
+    padding: 4px 6px; 
+    opacity: 0; 
+    pointer-events: none; 
+    transition: all 0.2s ease;
+  }
+  
+  .bookmark-card.show-context-menu .bookmark-context-menu { 
+    opacity: 1; 
+    pointer-events: auto; 
+  }
+  
+  .bookmark-context-menu button { 
+    background: transparent; 
+    border: none; 
+    color: #6b7280; 
+    font-size: 18px; 
+    cursor: pointer; 
+    padding: 4px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+  }
+  
+  .bookmark-context-menu button:hover {
+    background: #f3f4f6;
+    color: #374151;
+  }
+
+  /* LOCKED TAB SCREEN */
+  .tab-locked-screen {
+    grid-column: 1 / -1;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 60px 20px; gap: 14px; text-align: center;
+  }
+  .lock-big-icon {
+    width: 90px; height: 90px; background: #eef2ff; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .tab-locked-screen h3 { font-size: 1.4rem; color: #111827; margin: 0; }
+  .tab-locked-screen p { color: #6b7280; font-size: 0.95rem; margin: 0; }
+  .tab-unlock-form { display: flex; gap: 10px; align-items: center; margin-top: 6px; }
+  .tab-unlock-form input {
+    padding: 11px 16px; border: 1.5px solid #d1d5db; border-radius: 0.6rem;
+    font-size: 1rem; outline: none; width: 230px; user-select: text;
+  }
+  .tab-unlock-form input:focus { border-color: #6366f1; }
+  .tab-unlock-form button { background: #6366f1; color: #fff; padding: 11px 22px; border-radius: 0.6rem; font-size: 0.95rem; font-weight: 600; border: none; cursor: pointer; }
+  .tab-unlock-error { color: #ef4444; font-size: 0.85rem; margin-top: 2px; display: none; }
+
+  /* AI BRAIN */
+  .ai-brain-drawer { position: fixed; top: 0; right: -420px; width: 400px; height: 100%; background: #fff; z-index: 5000; transition: 0.4s ease; box-shadow: -10px 0 30px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
+  .ai-brain-drawer.open { right: 0; }
+  .ai-brain-header { padding: 15px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; background: #6366f1; color: white; }
+  .ai-brain-msgs { flex: 1; overflow-y: auto; padding: 20px; background: #f9fafb; display: flex; flex-direction: column; gap: 15px; }
+  .ai-msg { padding: 15px; border-radius: 12px; font-size: 14px; line-height: 1.6; background: #fff; border: 1px solid #e5e7eb; color: #374151; position: relative; }
+  .ai-msg .content { text-align: justify; }
+  .ai-msg .content strong { color: #111827; font-weight: 700; margin-top: 10px; display: inline-block; }
+  .ai-msg .content p { margin: 10px 0; }
+  .ai-msg .content ul { padding-left: 18px; margin: 8px 0; }
+  .ai-msg .content li { margin-bottom: 5px; }
+  .delete-msg-btn { position: absolute; top: 5px; right: 5px; cursor: pointer; color: #ccc; font-size: 18px; }
+  .ai-input-box { padding: 15px; border-top: 1px solid #eee; display: flex; gap: 10px; background: white; }
+
+  .msg-btns { display: flex; gap: 8px; margin-top: 12px; border-top: 1px solid #f3f4f6; padding-top: 10px; }
+  .msg-btns button { padding: 5px 10px; font-size: 12px; background: #f3f4f6; color: #4b5563; border-radius: 6px; font-weight: bold; }
+  .dots { display: inline-flex; align-items: center; gap: 4px; padding: 5px; }
+  .dot { width: 6px; height: 6px; background: #6366f1; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out; }
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-8px); } }
+
+  .modal-backdrop { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(17,24,39,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(2px); }
+  .modal-backdrop.show { display: flex; }
+  .modal { background: white; border-radius: 1rem; max-width: 460px; width: 100%; padding: 28px; display: flex; flex-direction: column; }
+
+  /* FOOTER */
+  .site-footer {
+    text-align: center;
+    padding: 10px 24px;
+    font-size: 0.85rem;
+    color: var(--text3);
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+    transition: background 0.3s, color 0.3s;
+    user-select: text;
+  }
+  .site-footer a {
+    color: #6366f1;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .site-footer a:hover {
+    text-decoration: underline;
+  }
+</style>
+</head>
+<body>
+
+<div class="app-container">
+
+  <!-- STICKY HEADER WRAPPER -->
+  <div class="sticky-header">
+    <header class="bookmarks-header">
+      <h2>(One Pilot)</h2>
+      <div class="input-group">
+        <label>Name</label>
+        <input type="text" id="bookmarkNameInput" placeholder="Name..." />
+      </div>
+      <div class="input-group">
+        <label>URL</label>
+        <input type="url" id="bookmarkUrlInput" placeholder="https://..." />
+      </div>
+      <div class="input-group" style="flex:2; min-width:200px;">
+        <label>Search</label>
+        <input type="search" id="searchInput" placeholder="Search across all tabs..." autocomplete="off" />
+      </div>
+      <div class="action-buttons">
+        <div class="button-row">
+          <button id="addBookmarkBtn">Add</button>
+          <button id="backupBtn" class="backup-btn">Backup</button>
+          <button id="restoreBtn" class="backup-btn">Restore</button>
+        </div>
+        <input type="file" id="restoreInput" accept=".json" style="display: none;" />
+        <!-- Ask AI button ABOVE modes -->
+        <button onclick="toggleBrain()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:50px;padding:9px 18px;font-size:0.875rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 4px 14px rgba(99,102,241,0.4);letter-spacing:0.3px;white-space:nowrap;width:100%;justify-content:center;">
+          <span style="font-size:18px;">✨</span> Ask AI
+        </button>
+        <div id="modeSwitcher">
+          <div class="mode-btn m-white active-mode" data-mode="white" title="White Mode">☀️</div>
+          <div class="mode-btn m-gray"  data-mode="gray"  title="Gray Mode">🌥️</div>
+          <div class="mode-btn m-dark"  data-mode="dark"  title="Dark Mode">🌙</div>
+        </div>
+      </div>
+    </header>
+    <div class="tabs-container" id="tabsContainer"></div>
+  </div>
+  <!-- END STICKY HEADER -->
+
+  <section class="bookmarks-grid" id="bookmarksGrid"></section>
+</div>
+
+<!-- FOOTER -->
+<footer class="site-footer">
+  Powered by: <a href="https://OnePilottools.com" target="_blank">OnePilottools.com</a> &nbsp;|&nbsp; Developer: Abdul Hameed Mughal &nbsp;|&nbsp; <a href="https://wa.me/923005682345" target="_blank">0300-568-2345</a>
+</footer>
+
+<div id="tabContextMenu"></div>
+
+<div id="aiBrainDrawer" class="ai-brain-drawer">
+  <div class="ai-brain-header">
+    <div style="display:flex;align-items:center;gap:8px;"><span class="material-icons">psychology</span><strong>AI Brain</strong></div>
+    <span class="material-icons" style="cursor:pointer" onclick="toggleBrain()">close</span>
+  </div>
+  <div class="ai-brain-msgs" id="aiBrainMsgs"></div>
+  <div class="ai-input-box">
+    <input type="text" id="aiBrainInp" placeholder="Type topic here..." style="flex:1;padding:10px;border:1.5px solid #d1d5db;border-radius:8px;outline:none">
+    <button onclick="askBrain()" style="background:#6366f1;color:white;border-radius:8px;padding:0 15px;">Send</button>
+  </div>
+</div>
+
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <h2 id="modalTitle">Edit Bookmark</h2>
+    <form id="bookmarkForm">
+      <label>Name</label><input type="text" id="modalBookmarkName" required style="width:100%;margin-bottom:15px;padding:10px;border:1.5px solid #ddd;border-radius:8px"/>
+      <label>URL</label><input type="url" id="modalBookmarkUrl" required style="width:100%;margin-bottom:15px;padding:10px;border:1.5px solid #ddd;border-radius:8px"/>
+      <div style="display:flex;justify-content:flex-end;gap:12px;">
+        <button type="button" id="cancelModalBtn" style="background:#f3f4f6;color:#374151">Cancel</button>
+        <button type="submit" style="background:#6366f1">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(() => {
+  const DEFAULT_BMS = [
+    { name:'Google',   url:'https://www.google.com' },
+    { name:'Youtube',  url:'https://www.youtube.com' },
+    { name:'Whatsapp', url:'https://web.whatsapp.com' },
+    { name:'Gmail',    url:'https://mail.google.com' },
+    { name:'ChatGPT',  url:'https://chatgpt.com' },
+    { name:'Facebook', url:'https://www.facebook.com' },
+    { name:'Twitter',  url:'https://www.twitter.com' }
+  ];
+
+  const DEFAULT_AI_BMS = [
+    { name:'Gemini',     url:'https://gemini.google.com' },
+    { name:'Deepseek',   url:'https://chat.deepseek.com' },
+    { name:'Kimi',   url:'https://www.kimi.com/en' },
+    { name:'Claude',     url:'https://claude.ai' },
+    { name:'Grok',       url:'https://grok.com' },
+    { name:'Meta',       url:'https://www.meta.ai' },
+    { name:'Perplexity', url:'https://www.perplexity.ai' }
+  ];
+
+  const TAB_COLORS = ['#6366f1','#10b981','#f59e0b','#ef4444','#3b82f6','#8b5cf6','#ec4899','#14b8a6','#f97316','#6b7280'];
+
+  let appData = { tabs:[] };
+  let activeTabId = null;
+  let editingBookmarkId = null;
+  let draggedItemIndex = null;
+  let unlockedTabs = new Set();
+
+  const uid = () => Math.random().toString(36).substr(2,9);
+
+  function getFavicon(url) {
+    try {
+      const d = new URL(url).hostname.toLowerCase();
+      // Gmail - specifically use Gmail's own icon
+      if(d.includes('mail.google.com') || d.includes('gmail.com')) {
+        return 'https://ssl.gstatic.com/ui/v1/icons/mail/rfr/gmail.ico';
+      }
+      if(d.includes('whatsapp.com')) return 'https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg';
+      return `https://www.google.com/s2/favicons?domain=${d}&sz=64`;
+    } catch { return 'https://via.placeholder.com/32'; }
+  }
+
+  function saveData() { localStorage.setItem('onepilot_v3', JSON.stringify(appData)); }
+
+  function loadData() {
+    const s = localStorage.getItem('onepilot_v3');
+    if(s) { appData = JSON.parse(s); activeTabId = appData.tabs[0]?.id; }
+    else { resetData(); }
+    renderUI();
+  }
+
+  function resetData() {
+    const id1 = uid();
+    const id2 = uid();
+    appData = {
+      tabs:[
+        { id: id1, name:'Daily', bookmarks: DEFAULT_BMS.map(b=>({id:uid(),...b})) },
+        { id: id2, name:'AI',    bookmarks: DEFAULT_AI_BMS.map(b=>({id:uid(),...b})) }
+      ]
+    };
+    activeTabId = id1;
+    saveData();
+  }
+
+  function renderUI() { renderTabs(); renderGrid(); }
+
+  function renderTabs() {
+    const tc = document.getElementById('tabsContainer');
+    tc.innerHTML = '';
+    appData.tabs.forEach(t => {
+      const el = document.createElement('div');
+      el.className = 'tab-item' + (t.id===activeTabId?' active':'');
+      el.dataset.tabid = t.id;
+      const color = t.color || '#4f46e5';
+      if(t.id === activeTabId) {
+        el.style.color = color;
+        el.style.borderBottomColor = '#111827';
+      }
+
+      el.innerHTML = t.name + (t.password ? '<span class="material-icons" style="font-size:13px;">lock</span>' : '');
+
+      el.onclick = () => {
+        if(t.password && !unlockedTabs.has(t.id) && t.id!==activeTabId) {
+          activeTabId = t.id; renderUI();
+        } else {
+          activeTabId = t.id;
+          document.getElementById('searchInput').value = '';
+          renderUI();
+        }
+      };
+
+      el.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); openTabMenu(t.id, e.clientX, e.clientY); };
+
+      el.draggable = true;
+      el.ondragstart = e => { e.dataTransfer.setData('tab-drag-id', t.id); setTimeout(()=>el.classList.add('tab-dragging'),0); };
+      el.ondragend = () => el.classList.remove('tab-dragging');
+      el.ondragover = e => { e.preventDefault(); el.classList.add('tab-drag-over'); };
+      el.ondragleave = () => el.classList.remove('tab-drag-over');
+      el.ondrop = e => {
+        e.preventDefault(); el.classList.remove('tab-drag-over');
+        const bmId = e.dataTransfer.getData('bookmark-cross-tab');
+        const fromTab = e.dataTransfer.getData('tab-drag-id');
+        if(bmId) { moveBookmarkToTab(bmId, t.id); }
+        else if(fromTab && fromTab!==t.id) {
+          const tabs=appData.tabs, fi=tabs.findIndex(x=>x.id===fromTab), ti=tabs.findIndex(x=>x.id===t.id);
+          const [m]=tabs.splice(fi,1); tabs.splice(ti,0,m);
+          saveData(); renderUI();
+        }
+      };
+      tc.appendChild(el);
+    });
+
+    const addBtn = document.createElement('button');
+    addBtn.className='add-tab-btn'; addBtn.innerHTML='+';
+    addBtn.onclick = () => {
+      const name=prompt('Enter Category Name:');
+      if(name&&name.trim()){ const id=uid(); appData.tabs.push({id,name:name.trim(),bookmarks:[]}); activeTabId=id; saveData(); renderUI(); }
+    };
+    tc.appendChild(addBtn);
+  }
+
+  function renderGrid() {
+    const grid = document.getElementById('bookmarksGrid');
+    grid.innerHTML = '';
+    const activeTab = appData.tabs.find(t=>t.id===activeTabId);
+
+    if(activeTab && activeTab.password && !unlockedTabs.has(activeTab.id)) {
+      const screen = document.createElement('div');
+      screen.className = 'tab-locked-screen';
+      screen.innerHTML = `
+        <div class="lock-big-icon"><span class="material-icons" style="font-size:44px;color:#6366f1;">lock</span></div>
+        <h3>🔒 Tab Locked</h3>
+        <p>"${activeTab.name}" tab password se protected hai</p>
+        <div class="tab-unlock-form">
+          <input type="password" id="inlineUnlockInp" placeholder="Password dalein..." />
+          <button id="inlineUnlockBtn">Unlock</button>
+        </div>
+        <div class="tab-unlock-error" id="inlineUnlockErr">❌ Wrong password, dobara try karein!</div>
+      `;
+      grid.appendChild(screen);
+
+      const doUnlock = () => {
+        const inp = document.getElementById('inlineUnlockInp');
+        const err = document.getElementById('inlineUnlockErr');
+        if(btoa(inp.value) === activeTab.password) {
+          unlockedTabs.add(activeTab.id); renderUI();
+        } else { err.style.display='block'; inp.value=''; inp.focus(); }
+      };
+      document.getElementById('inlineUnlockBtn').onclick = doUnlock;
+      document.getElementById('inlineUnlockInp').onkeydown = e => { if(e.key==='Enter') doUnlock(); };
+      return;
+    }
+
+    const term = document.getElementById('searchInput').value.toLowerCase();
+    let list = [];
+    if(term) {
+      appData.tabs.forEach(tab => {
+        if(tab.password && !unlockedTabs.has(tab.id)) return;
+        tab.bookmarks.forEach(bm => { if(bm.name.toLowerCase().includes(term)) list.push({...bm,tabId:tab.id}); });
+      });
+    } else {
+      if(activeTab) list = activeTab.bookmarks.map(b=>({...b,tabId:activeTabId}));
+    }
+
+    list.forEach((bm,idx) => {
+      const card = document.createElement('article');
+      card.className='bookmark-card'; card.draggable=true;
+      card.innerHTML=`
+        <div class="bookmark-icon"><img src="${getFavicon(bm.url)}" /></div>
+        <div class="bookmark-name">${bm.name}</div>
+        <div class="bookmark-context-menu">
+          <button class="material-icons" data-action="edit">edit</button>
+          <button class="material-icons" data-action="delete">delete</button>
+        </div>`;
+
+      card.onclick = e => { if(!e.target.closest('.bookmark-context-menu')) window.open(bm.url,'_self'); };
+      card.oncontextmenu = e => { e.preventDefault(); document.querySelectorAll('.bookmark-card').forEach(c=>c.classList.remove('show-context-menu')); card.classList.add('show-context-menu'); };
+
+      card.ondragstart = e => { draggedItemIndex=idx; card.classList.add('dragging'); e.dataTransfer.setData('bookmark-cross-tab',bm.id); e.dataTransfer.effectAllowed='move'; };
+      card.ondragover = e => e.preventDefault();
+      card.ondrop = () => {
+        if(term) return;
+        if(draggedItemIndex!==null && draggedItemIndex!==idx) {
+          const bms=appData.tabs.find(t=>t.id===activeTabId).bookmarks;
+          const [item]=bms.splice(draggedItemIndex,1); bms.splice(idx,0,item);
+          saveData(); renderUI();
+        }
+      };
+      card.ondragend = () => card.classList.remove('dragging');
+
+      card.querySelector('.bookmark-context-menu').onclick = e => {
+        const action=e.target.getAttribute('data-action');
+        const tTab=appData.tabs.find(t=>t.id===bm.tabId);
+        if(action==='delete'){ tTab.bookmarks=tTab.bookmarks.filter(b=>b.id!==bm.id); saveData(); renderUI(); }
+        if(action==='edit'){ editingBookmarkId=bm.id; document.getElementById('modalBookmarkName').value=bm.name; document.getElementById('modalBookmarkUrl').value=bm.url; document.getElementById('modalBackdrop').classList.add('show'); }
+      };
+      grid.appendChild(card);
+    });
+  }
+
+  function openTabMenu(tabId, x, y) {
+    const menu = document.getElementById('tabContextMenu');
+    const t = appData.tabs.find(x=>x.id===tabId);
+    menu.innerHTML = '';
+    menu.className = 'show';
+    Object.assign(menu.style, { position:'fixed', display:'flex', flexDirection:'column', gap:'2px', zIndex:'99999', background:'#fff', border:'1px solid #e5e7eb', borderRadius:'12px', boxShadow:'0 12px 32px rgba(0,0,0,0.18)', padding:'8px', minWidth:'185px' });
+
+    const acts = [
+      { icon:'edit', label:'Rename', fn:()=>{
+        if(t.password && !unlockedTabs.has(t.id)){
+          alert('❌ Tab locked hai! Pehle unlock karein.');
+          return;
+        }
+        const n=prompt('New tab name:',t.name); if(n&&n.trim()){t.name=n.trim();saveData();renderUI();}
+      }},
+      { icon:t.password?'lock_open':'lock', label:t.password?'Remove Password':'Set Password', fn:()=>{
+        if(t.password){
+          const pw=prompt('Current password dalein:'); if(pw===null)return;
+          if(btoa(pw)!==t.password){alert('❌ Wrong password!');return;}
+          delete t.password; unlockedTabs.delete(t.id); saveData(); renderUI();
+        } else {
+          const pw=prompt('New password set karein:'); if(pw&&pw.trim()){t.password=btoa(pw); unlockedTabs.delete(t.id); saveData(); renderUI();}
+        }
+      }},
+      { icon:'delete', label:'Delete Tab', danger:true, fn:()=>{
+        if(!confirm(`"${t.name}" tab delete karen?`))return;
+        if(t.password){ const pw=prompt('Password dalein:'); if(pw===null)return; if(btoa(pw)!==t.password){alert('❌ Wrong password!');return;} }
+        appData.tabs=appData.tabs.filter(x=>x.id!==tabId);
+        if(activeTabId===tabId) activeTabId=appData.tabs[0]?.id||null;
+        saveData(); renderUI();
+      }}
+    ];
+
+    acts.forEach(a=>{
+      const btn=document.createElement('button');
+      btn.style.cssText=`display:flex;align-items:center;gap:8px;padding:9px 12px;font-size:0.875rem;color:${a.danger?'#ef4444':'#374151'};border-radius:7px;cursor:pointer;background:none;border:none;font-weight:500;width:100%;text-align:left;`;
+      btn.innerHTML=`<span class="material-icons" style="font-size:16px;">${a.icon}</span>${a.label}`;
+      btn.onmouseenter=()=>btn.style.background=a.danger?'#fef2f2':'#f3f4f6';
+      btn.onmouseleave=()=>btn.style.background='none';
+      btn.onclick=e=>{ e.stopPropagation(); closeMenu(); a.fn(); };
+      menu.appendChild(btn);
+    });
+
+    const vw=window.innerWidth, vh=window.innerHeight;
+    let left=x, top=y+4;
+    if(left+200>vw) left=vw-205;
+    if(top+240>vh) top=y-245;
+    menu.style.left=left+'px'; menu.style.top=top+'px';
+
+    setTimeout(()=>document.addEventListener('click', closeMenu, {once:true}), 10);
+  }
+
+  function openColorPalette(tabId, anchorEl) {
+    document.querySelectorAll('.inline-color-palette').forEach(p => p.remove());
+    const t = appData.tabs.find(x => x.id === tabId);
+
+    const colors = [
+      '#6366f1','#818cf8','#a5b4fc','#8b5cf6','#c084fc',
+      '#ec4899','#f472b6','#ef4444','#f87171','#dc2626',
+      '#f97316','#fb923c','#f59e0b','#fbbf24','#fde047',
+      '#84cc16','#22c55e','#10b981','#34d399','#14b8a6',
+      '#06b6d4','#0ea5e9','#3b82f6','#60a5fa','#2563eb',
+      '#7c3aed','#9333ea','#be185d','#b45309','#92400e',
+      '#111827','#374151','#6b7280','#9ca3af','#ffffff'
+    ];
+
+    const palette = document.createElement('div');
+    palette.className = 'inline-color-palette';
+    palette.style.cssText = 'position:fixed;z-index:99999;background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 8px 28px rgba(0,0,0,0.18);padding:14px;display:flex;flex-wrap:wrap;gap:8px;width:220px;';
+    palette.onclick = e => e.stopPropagation();
+
+    colors.forEach(c => {
+      const dot = document.createElement('div');
+      dot.style.cssText = `width:28px;height:28px;border-radius:50%;background:${c};cursor:pointer;border:3px solid ${(t.color||'#6366f1')===c?'#374151':'transparent'};box-shadow:0 2px 6px rgba(0,0,0,0.15);transition:transform 0.15s;flex-shrink:0;`;
+      dot.title = c;
+      dot.onmouseenter = () => dot.style.transform = 'scale(1.25)';
+      dot.onmouseleave = () => dot.style.transform = 'scale(1)';
+      dot.onclick = e => {
+        e.stopPropagation();
+        t.color = c; saveData(); renderUI();
+        palette.remove();
+      };
+      palette.appendChild(dot);
+    });
+
+    const vw = window.innerWidth, vh = window.innerHeight;
+    let left = 100, top = 100;
+    if(anchorEl) {
+      const rect = anchorEl.getBoundingClientRect();
+      left = rect.left; top = rect.bottom + 8;
+    }
+    if(left + 200 > vw) left = vw - 205;
+    if(top + 160 > vh) top = top - 175;
+    palette.style.left = left + 'px';
+    palette.style.top = top + 'px';
+
+    document.body.appendChild(palette);
+    setTimeout(() => document.addEventListener('click', () => palette.remove(), { once: true }), 10);
+  }
+
+  function closeMenu() {
+    const m=document.getElementById('tabContextMenu');
+    m.style.display='none'; m.className='';
+  }
+
+  function moveBookmarkToTab(bmId, targetTabId) {
+    let bm=null, srcTab=null;
+    appData.tabs.forEach(t=>{ const f=t.bookmarks.find(b=>b.id===bmId); if(f){bm=f;srcTab=t;} });
+    if(!bm||!srcTab||srcTab.id===targetTabId) return;
+    srcTab.bookmarks=srcTab.bookmarks.filter(b=>b.id!==bmId);
+    appData.tabs.find(t=>t.id===targetTabId)?.bookmarks.push(bm);
+    saveData(); renderUI();
+  }
+
+  const nInp=document.getElementById('bookmarkNameInput');
+  const uInp=document.getElementById('bookmarkUrlInput');
+  const addBtn=document.getElementById('addBookmarkBtn');
+  [nInp,uInp].forEach(inp=>inp.onkeydown=e=>{if(e.key==='Enter')addBtn.click();});
+
+  addBtn.onclick=()=>{
+    if(!nInp.value||!uInp.value)return;
+    appData.tabs.find(t=>t.id===activeTabId).bookmarks.push({id:uid(),name:nInp.value,url:uInp.value});
+    nInp.value=''; uInp.value=''; saveData(); renderUI();
+  };
+
+  document.getElementById('searchInput').onkeydown=e=>{
+    if(e.key==='Enter'){
+      const val=e.target.value.toLowerCase(); let found=null;
+      appData.tabs.forEach(t=>{const b=t.bookmarks.find(x=>x.name.toLowerCase().includes(val));if(b)found=b;});
+      if(found)window.open(found.url,'_self');
+    }
+  };
+
+  document.getElementById('backupBtn').onclick=()=>{
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([JSON.stringify(appData)],{type:'text/json'}));
+    a.download='bookmarks_backup.json'; a.click();
+  };
+  document.getElementById('restoreBtn').onclick=()=>document.getElementById('restoreInput').click();
+  document.getElementById('restoreInput').onchange=e=>{
+    const r=new FileReader();
+    r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.tabs){appData=d;activeTabId=d.tabs[0].id;saveData();renderUI();}}catch{alert('Invalid Backup File');}};
+    if(e.target.files[0])r.readAsText(e.target.files[0]);
+  };
+
+  document.getElementById('bookmarkForm').onsubmit=e=>{
+    e.preventDefault();
+    appData.tabs.forEach(t=>{const bm=t.bookmarks.find(b=>b.id===editingBookmarkId);if(bm){bm.name=document.getElementById('modalBookmarkName').value;bm.url=document.getElementById('modalBookmarkUrl').value;}});
+    document.getElementById('modalBackdrop').classList.remove('show'); saveData(); renderUI();
+  };
+  document.getElementById('cancelModalBtn').onclick=()=>document.getElementById('modalBackdrop').classList.remove('show');
+  document.getElementById('searchInput').oninput=renderUI;
+  document.addEventListener('click',e=>{if(!e.target.closest('.bookmark-card'))document.querySelectorAll('.bookmark-card').forEach(c=>c.classList.remove('show-context-menu'));});
+
+  loadData();
+})();
+
+let chatHistory=JSON.parse(localStorage.getItem('ai_chat_history'))||[];
+window.toggleBrain=()=>document.getElementById('aiBrainDrawer').classList.toggle('open');
+
+function formatAIResponse(text){
+  let c=text.replace(/\*\*\*(.*?)\*\*\*/g,'<strong>$1</strong>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\*(.*?)\*/g,'<strong>$1</strong>');
+  let lines=c.split('\n'),h='',inList=false;
+  lines.forEach(line=>{
+    line=line.trim();if(!line)return;
+    if(line.startsWith('* ')||line.startsWith('- ')||line.startsWith('•')){if(!inList){h+='<ul>';inList=true;}h+=`<li>${line.replace(/^[\*\-\•]\s*/,'')}</li>`;}
+    else{if(inList){h+='</ul>';inList=false;}h+=line.endsWith(':')?`<p><strong>${line}</strong></p>`:`<p>${line}</p>`;}
+  });
+  if(inList)h+='</ul>';return h;
+}
+
+function renderChat(){
+  const c=document.getElementById('aiBrainMsgs');
+  c.innerHTML=chatHistory.length===0?'<div class="ai-msg">Salam Bahi! Topic likhen, main summarize kar doon ga.</div>':'';
+  chatHistory.forEach((msg,idx)=>{
+    const div=document.createElement('div');div.className='ai-msg';
+    if(msg.type==='user')div.style='background:#6366f1;color:white;align-self:flex-end;border:none;';
+    div.innerHTML=`<span class="material-icons delete-msg-btn" onclick="deleteMsg(${idx})">close</span><div class="content">${msg.text}</div>${msg.type==='ai'?`<div class="msg-btns"><button onclick="copyMsg(${idx})">Copy</button><button onclick="downloadWord(${idx})">Word</button></div>`:''}`;
+    c.appendChild(div);
+  });
+  c.scrollTop=c.scrollHeight;
+}
+
+window.deleteMsg=(idx)=>{chatHistory.splice(idx,1);localStorage.setItem('ai_chat_history',JSON.stringify(chatHistory));renderChat();};
+
+window.askBrain=async()=>{
+  const inp=document.getElementById('aiBrainInp');const val=inp.value.trim();if(!val)return;
+  chatHistory.push({type:'user',text:val});inp.value='';renderChat();
+  const loader=document.createElement('div');loader.className='ai-msg';loader.id='temp_loader';
+  loader.innerHTML='<div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+  document.getElementById('aiBrainMsgs').appendChild(loader);
+  try{
+    const res=await fetch('https://hidden-grass-b041onepilot-essay-writer.onepilottools.workers.dev/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic:`Please provide a concise and clear summary of the following topic: "${val}". Focus on the most important points only, use bullet points for clarity, and end with a brief "Key Takeaway" or "Conclusion".`,wordCount:300})});
+    const d=await res.json();
+    document.getElementById('temp_loader').remove();
+    chatHistory.push({type:'ai',text:formatAIResponse(d.essay)});
+    localStorage.setItem('ai_chat_history',JSON.stringify(chatHistory));renderChat();
+  }catch{document.getElementById('temp_loader').innerText='Error Bahi!';}
+};
+
+window.copyMsg=(idx)=>{navigator.clipboard.writeText(document.querySelectorAll('.ai-msg .content')[idx].innerText);alert('Copied!');};
+window.downloadWord=(idx)=>{
+  const content=document.querySelectorAll('.ai-msg .content')[idx].innerHTML;
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff','<html><body style="font-family:Arial">'+content+'</body></html>'],{type:'application/msword'}));a.download='summary.doc';a.click();
+};
+document.getElementById('aiBrainInp').onkeydown=e=>{if(e.key==='Enter')askBrain();};
+renderChat();
+
+(()=>{
+  const MODES = { white:'', gray:'mode-gray', dark:'mode-dark' };
+  function applyMode(mode) {
+    document.body.classList.remove('mode-gray','mode-dark');
+    if(MODES[mode]) document.body.classList.add(MODES[mode]);
+    document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.toggle('active-mode', btn.dataset.mode === mode));
+    localStorage.setItem('onepilot_mode', mode);
+  }
+  document.querySelectorAll('.mode-btn').forEach(btn => btn.onclick = () => applyMode(btn.dataset.mode));
+  applyMode(localStorage.getItem('onepilot_mode') || 'white');
+})();
+</script>
+</body>
+</html>
