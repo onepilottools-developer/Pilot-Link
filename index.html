@@ -291,14 +291,8 @@
     transition: background 0.3s, color 0.3s;
     user-select: text;
   }
-  .site-footer a {
-    color: #6366f1;
-    text-decoration: none;
-    font-weight: 600;
-  }
-  .site-footer a:hover {
-    text-decoration: underline;
-  }
+  .site-footer a { color: #6366f1; text-decoration: none; font-weight: 600; }
+  .site-footer a:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -328,7 +322,6 @@
           <button id="restoreBtn" class="backup-btn">Restore</button>
         </div>
         <input type="file" id="restoreInput" accept=".json" style="display: none;" />
-        <!-- Ask AI button ABOVE modes -->
         <button onclick="toggleBrain()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:50px;padding:9px 18px;font-size:0.875rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 4px 14px rgba(99,102,241,0.4);letter-spacing:0.3px;white-space:nowrap;width:100%;justify-content:center;">
           <span style="font-size:18px;">✨</span> Ask AI
         </button>
@@ -344,6 +337,7 @@
   <!-- END STICKY HEADER -->
 
   <section class="bookmarks-grid" id="bookmarksGrid"></section>
+  <div id="lockScreenContainer"></div>
 </div>
 
 <!-- FOOTER -->
@@ -364,7 +358,6 @@
     <button onclick="askBrain()" style="background:#6366f1;color:white;border-radius:8px;padding:0 15px;">Send</button>
   </div>
 </div>
-
 
 <div class="modal-backdrop" id="modalBackdrop">
   <div class="modal">
@@ -395,7 +388,7 @@
   const DEFAULT_AI_BMS = [
     { name:'Gemini',     url:'https://gemini.google.com' },
     { name:'Deepseek',   url:'https://chat.deepseek.com' },
-    { name:'Kimi',   url:'https://www.kimi.com/en' },
+    { name:'Kimi',       url:'https://www.kimi.com/en' },
     { name:'Claude',     url:'https://claude.ai' },
     { name:'Grok',       url:'https://grok.com' },
     { name:'Meta',       url:'https://www.meta.ai' },
@@ -415,7 +408,6 @@
   function getFavicon(url) {
     try {
       const d = new URL(url).hostname.toLowerCase();
-      // Gmail - specifically use Gmail's own icon
       if(d.includes('mail.google.com') || d.includes('gmail.com')) {
         return 'https://ssl.gstatic.com/ui/v1/icons/mail/rfr/gmail.ico';
       }
@@ -505,23 +497,30 @@
 
   function renderGrid() {
     const grid = document.getElementById('bookmarksGrid');
+    const lockContainer = document.getElementById('lockScreenContainer');
     grid.innerHTML = '';
+    lockContainer.innerHTML = '';
     const activeTab = appData.tabs.find(t=>t.id===activeTabId);
 
-    if(activeTab && activeTab.password && !unlockedTabs.has(activeTab.id)) {
-      const screen = document.createElement('div');
-      screen.className = 'tab-locked-screen';
-      screen.innerHTML = `
-        <div class="lock-big-icon"><span class="material-icons" style="font-size:44px;color:#6366f1;">lock</span></div>
-        <h3>🔒 Tab Locked</h3>
-        <p>"${activeTab.name}" tab password se protected hai</p>
-        <div class="tab-unlock-form">
-          <input type="password" id="inlineUnlockInp" placeholder="Password dalein..." />
-          <button id="inlineUnlockBtn">Unlock</button>
+    const term = document.getElementById('searchInput').value.toLowerCase();
+
+    // Agar active tab locked hai aur unlocked nahi
+    const activeTabIsLocked = activeTab && activeTab.password && !unlockedTabs.has(activeTab.id);
+
+    if(activeTabIsLocked) {
+      // Lock screen grid se BAHAR alag container mein dikhao
+      lockContainer.innerHTML = `
+        <div class="tab-locked-screen">
+          <div class="lock-big-icon"><span class="material-icons" style="font-size:44px;color:#6366f1;">lock</span></div>
+          <h3>🔒 Tab Locked</h3>
+          <p>"${activeTab.name}" tab password se protected hai</p>
+          <div class="tab-unlock-form">
+            <input type="password" id="inlineUnlockInp" placeholder="Password dalein..." />
+            <button id="inlineUnlockBtn">Unlock</button>
+          </div>
+          <div class="tab-unlock-error" id="inlineUnlockErr">❌ Wrong password, dobara try karein!</div>
         </div>
-        <div class="tab-unlock-error" id="inlineUnlockErr">❌ Wrong password, dobara try karein!</div>
       `;
-      grid.appendChild(screen);
 
       const doUnlock = () => {
         const inp = document.getElementById('inlineUnlockInp');
@@ -532,16 +531,22 @@
       };
       document.getElementById('inlineUnlockBtn').onclick = doUnlock;
       document.getElementById('inlineUnlockInp').onkeydown = e => { if(e.key==='Enter') doUnlock(); };
-      return;
+      // return nahi — grid mein unlocked tabs ke bookmarks render hote rahenge
     }
 
-    const term = document.getElementById('searchInput').value.toLowerCase();
     let list = [];
+
     if(term) {
+      // Search: sirf unlocked tabs ke bookmarks
       appData.tabs.forEach(tab => {
         if(tab.password && !unlockedTabs.has(tab.id)) return;
-        tab.bookmarks.forEach(bm => { if(bm.name.toLowerCase().includes(term)) list.push({...bm,tabId:tab.id}); });
+        tab.bookmarks.forEach(bm => {
+          if(bm.name.toLowerCase().includes(term)) list.push({...bm, tabId:tab.id});
+        });
       });
+    } else if(activeTabIsLocked) {
+      // Locked tab pe hain, search empty: kuch mat dikhao — sirf lock screen
+      // (search karne pe unlocked tabs ke results aayenge)
     } else {
       if(activeTab) list = activeTab.bookmarks.map(b=>({...b,tabId:activeTabId}));
     }
@@ -707,11 +712,18 @@
     nInp.value=''; uInp.value=''; saveData(); renderUI();
   };
 
+  // ✅ FIXED: Search Enter press - sirf unlocked tabs ke bookmarks open honge
   document.getElementById('searchInput').onkeydown=e=>{
     if(e.key==='Enter'){
-      const val=e.target.value.toLowerCase(); let found=null;
-      appData.tabs.forEach(t=>{const b=t.bookmarks.find(x=>x.name.toLowerCase().includes(val));if(b)found=b;});
-      if(found)window.open(found.url,'_self');
+      const val=e.target.value.toLowerCase();
+      let found=null;
+      appData.tabs.forEach(t=>{
+        // 🔒 Agar tab locked hai aur unlocked nahi => bilkul skip
+        if(t.password && !unlockedTabs.has(t.id)) return;
+        const b=t.bookmarks.find(x=>x.name.toLowerCase().includes(val));
+        if(b) found=b;
+      });
+      if(found) window.open(found.url,'_self');
     }
   };
 
