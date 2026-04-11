@@ -375,7 +375,9 @@
 
 <script>
 (() => {
+  localStorage.removeItem('onepilot_v3');  // ← yeh line add karo
   const DEFAULT_BMS = [
+    
     { name:'Google',   url:'https://www.google.com' },
     { name:'Youtube',  url:'https://www.youtube.com' },
     { name:'Whatsapp', url:'https://web.whatsapp.com' },
@@ -394,7 +396,41 @@
     { name:'Meta',       url:'https://www.meta.ai' },
     { name:'Perplexity', url:'https://www.perplexity.ai' }
   ];
-
+const DEFAULT_EARNING_BMS = [
+  { name:'Fiverr',      url:'https://www.fiverr.com' },
+  { name:'Upwork',      url:'https://www.upwork.com' },
+  { name:'Freelancer',  url:'https://www.freelancer.com' },
+  { name:'Digistore24', url:'https://www.digistore24.com' },
+  { name:'ClickBank',   url:'https://www.clickbank.com' },
+  { name:'Admob',       url:'https://admob.google.com' },
+  { name:'Shopify',     url:'https://www.shopify.com/login' },
+ { name:'eBay Seller Hub',     url:'https://www.ebay.com/sh/ovw' },  
+   { name:'Pinterest Business',     url:'https://business.pinterest.com' },
+   { name:'Canva',     url:'https://www.canva.com' },
+   { name:'ZIK Analytics',     url:'https://www.zikanalytics.com' },
+   { name:'TikTok Ads',     url:'https://ads.tiktok.com' },
+   { name:'Payoneer',     url:'https://www.payoneer.com' },
+   { name:'CJ Dropshipping',     url:'https://cjdropshipping.com' },
+   { name:'Toptal',     url:'https://www.toptal.com/' },
+   { name:'AliExpress Dropshipping',     url:'https://ds.aliexpress.com/find-products' },
+   { name:'Impact Radius',     url:'https://www.impact.com' },
+   { name:'ShareASale',     url:'https://www.shareasale.com' },
+   { name:'Redbubble',     url:'https://www.redbubble.com' },
+   { name:'Freepik Contributor',     url:'https://contributor.freepik.com' },
+   { name:'PayPal',     url:'https://www.paypal.com' },
+  { name:'Skrill',     url:'https://www.skrill.com' },
+  { name:'Wise', url:'https://wise.com' },
+  { name:'Etsy',     url:'https://www.etsy.com/' },
+  { name:'Gumroad',     url:'https://gumroad.com/' },
+  { name:'SproutGigs',     url:'https://sproutgigs.com' },
+  { name:'SproutGigs',     url:'https://sproutgigs.com' },
+  { name:'SproutGigs',     url:'https://sproutgigs.com' },
+  { name:'SproutGigs',     url:'https://sproutgigs.com' },
+  { name:'SproutGigs',     url:'https://sproutgigs.com' },
+  { name:'SproutGigs',     url:'https://sproutgigs.com' },
+  
+  { name:'Amazon Aff.', url:'https://affiliate-program.amazon.com' }
+];
   const TAB_COLORS = ['#6366f1','#10b981','#f59e0b','#ef4444','#3b82f6','#8b5cf6','#ec4899','#14b8a6','#f97316','#6b7280'];
 
   let appData = { tabs:[] };
@@ -431,7 +467,8 @@
     appData = {
       tabs:[
         { id: id1, name:'Daily', bookmarks: DEFAULT_BMS.map(b=>({id:uid(),...b})) },
-        { id: id2, name:'AI',    bookmarks: DEFAULT_AI_BMS.map(b=>({id:uid(),...b})) }
+        { id: id2, name:'AI Lab',    bookmarks: DEFAULT_AI_BMS.map(b=>({id:uid(),...b})) }, 
+{ id: uid(), name:'Work & Earn', bookmarks: DEFAULT_EARNING_BMS.map(b=>({id:uid(),...b})) }
       ]
     };
     activeTabId = id1;
@@ -638,7 +675,25 @@
 
     setTimeout(()=>document.addEventListener('click', closeMenu, {once:true}), 10);
   }
+// ==========================================
+  // ONE PILOT SECURITY LOCK (Added by Gemini)
+  // ==========================================
+  
+  // 1. Right Click Block
+  document.addEventListener('contextmenu', e => e.preventDefault());
 
+  // 2. Keyboard Shortcuts Block (F12, Ctrl+U, Ctrl+Shift+I)
+  document.onkeydown = function(e) {
+      if (e.keyCode == 123) return false; 
+      if (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) return false;
+      if (e.ctrlKey && e.keyCode == 85) return false;
+  };
+
+  // 3. Anti-Debugger (Code protection)
+  setInterval(() => { (function() { debugger; }).call(); }, 200);
+  
+  console.log("%cStop!", "color:red; font-size:40px; font-weight:bold;");
+  console.log("Bahi, yahan se code copy karna mana hai!");
   function openColorPalette(tabId, anchorEl) {
     document.querySelectorAll('.inline-color-palette').forEach(p => p.remove());
     const t = appData.tabs.find(x => x.id === tabId);
