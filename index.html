@@ -293,6 +293,78 @@
   }
   .site-footer a { color: #6366f1; text-decoration: none; font-weight: 600; }
   .site-footer a:hover { text-decoration: underline; }
+
+  /* =====================================================
+     FIX 3: Backup reminder banner — Animated White Style
+     ===================================================== */
+  @keyframes bannerSlideIn {
+    from { opacity: 0; transform: translateY(-12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+  }
+  @keyframes pulse-dot {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50%       { transform: scale(1.4); opacity: 0.6; }
+  }
+
+  .backup-reminder {
+    background: #ffffff;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 11px 18px;
+    font-size: 0.82rem;
+    color: #374151;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    animation: bannerSlideIn 0.4s ease both;
+    position: relative;
+    overflow: hidden;
+    cursor: default;
+    transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
+  }
+  .backup-reminder::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(99,102,241,0.06) 50%, transparent 100%);
+    background-size: 400px 100%;
+    animation: shimmer 2.6s infinite linear;
+    pointer-events: none;
+  }
+  .backup-reminder:hover {
+    box-shadow: 0 6px 22px rgba(99,102,241,0.13);
+    border-color: #a5b4fc;
+    transform: translateY(-1px);
+  }
+  .backup-reminder .br-icon {
+    font-size: 1.25rem;
+    animation: pulse-dot 2s infinite ease-in-out;
+    flex-shrink: 0;
+  }
+  .backup-reminder .br-text { flex: 1; color: #374151; }
+  .backup-reminder .br-text strong { color: #4f46e5; }
+  .backup-reminder .br-dismiss {
+    margin-left: auto;
+    cursor: pointer;
+    font-size: 1rem;
+    color: #9ca3af;
+    width: 24px; height: 24px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: background 0.2s, color 0.2s;
+  }
+  .backup-reminder .br-dismiss:hover {
+    background: #f3f4f6;
+    color: #374151;
+  }
 </style>
 </head>
 <body>
@@ -332,6 +404,12 @@
         </div>
       </div>
     </header>
+    <!-- FIX 3: Backup reminder banner -->
+    <div class="backup-reminder" id="backupReminderBanner">
+      <span class="br-icon">💾</span>
+      <span class="br-text">Apna data safe rakhen — <strong>Backup zaroor lein!</strong> Upar "Backup" button use karein.</span>
+      <span class="br-dismiss" onclick="dismissBackupReminder()" title="Dismiss">✕</span>
+    </div>
     <div class="tabs-container" id="tabsContainer"></div>
   </div>
   <!-- END STICKY HEADER -->
@@ -375,9 +453,7 @@
 
 <script>
 (() => {
-    // ← yeh line add karo
   const DEFAULT_BMS = [
-    
     { name:'Google',   url:'https://www.google.com' },
     { name:'Youtube',  url:'https://www.youtube.com' },
     { name:'Whatsapp', url:'https://web.whatsapp.com' },
@@ -396,41 +472,40 @@
     { name:'Meta',       url:'https://www.meta.ai' },
     { name:'Perplexity', url:'https://www.perplexity.ai' }
   ];
-const DEFAULT_EARNING_BMS = [
-  { name:'Fiverr',      url:'https://www.fiverr.com' },
-  { name:'Upwork',      url:'https://www.upwork.com' },
-  { name:'Freelancer',  url:'https://www.freelancer.com' },
-  { name:'Digistore24', url:'https://www.digistore24.com' },
-  { name:'ClickBank',   url:'https://www.clickbank.com' },
-  { name:'Admob',       url:'https://admob.google.com' },
-  { name:'Shopify',     url:'https://www.shopify.com/login' },
- { name:'eBay Seller Hub',     url:'https://www.ebay.com/sh/ovw' },  
-   { name:'Pinterest Business',     url:'https://business.pinterest.com' },
-   { name:'Canva',     url:'https://www.canva.com' },
-   { name:'ZIK Analytics',     url:'https://www.zikanalytics.com' },
-   { name:'TikTok Ads',     url:'https://ads.tiktok.com' },
-   { name:'Payoneer',     url:'https://www.payoneer.com' },
-   { name:'CJ Dropshipping',     url:'https://cjdropshipping.com' },
-   { name:'Toptal',     url:'https://www.toptal.com/' },
-   { name:'AliExpress Dropshipping',     url:'https://ds.aliexpress.com/find-products' },
-   { name:'Impact Radius',     url:'https://www.impact.com' },
-   { name:'ShareASale',     url:'https://www.shareasale.com' },
-   { name:'Redbubble',     url:'https://www.redbubble.com' },
-   { name:'Freepik Contributor',     url:'https://contributor.freepik.com' },
-   { name:'PayPal',     url:'https://www.paypal.com' },
-  { name:'Skrill',     url:'https://www.skrill.com' },
-  { name:'Wise', url:'https://wise.com' },
-  { name:'Etsy',     url:'https://www.etsy.com/' },
-  { name:'Gumroad',     url:'https://gumroad.com/' },
-  { name:'SproutGigs',     url:'https://sproutgigs.com' },
-  { name:'SproutGigs',     url:'https://sproutgigs.com' },
-  { name:'SproutGigs',     url:'https://sproutgigs.com' },
-  { name:'SproutGigs',     url:'https://sproutgigs.com' },
-  { name:'SproutGigs',     url:'https://sproutgigs.com' },
-  { name:'SproutGigs',     url:'https://sproutgigs.com' },
-  
-  { name:'Amazon Aff.', url:'https://affiliate-program.amazon.com' }
-];
+
+  // =====================================================
+  // FIX 2: SproutGigs duplicates hata diye (6 se 1 kar diya)
+  // =====================================================
+  const DEFAULT_EARNING_BMS = [
+    { name:'Fiverr',                url:'https://www.fiverr.com' },
+    { name:'Upwork',                url:'https://www.upwork.com' },
+    { name:'Freelancer',            url:'https://www.freelancer.com' },
+    { name:'Digistore24',           url:'https://www.digistore24.com' },
+    { name:'ClickBank',             url:'https://www.clickbank.com' },
+    { name:'Admob',                 url:'https://admob.google.com' },
+    { name:'Shopify',               url:'https://www.shopify.com/login' },
+    { name:'eBay Seller Hub',       url:'https://www.ebay.com/sh/ovw' },
+    { name:'Pinterest Business',    url:'https://business.pinterest.com' },
+    { name:'Canva',                 url:'https://www.canva.com' },
+    { name:'ZIK Analytics',         url:'https://www.zikanalytics.com' },
+    { name:'TikTok Ads',            url:'https://ads.tiktok.com' },
+    { name:'Payoneer',              url:'https://www.payoneer.com' },
+    { name:'CJ Dropshipping',       url:'https://cjdropshipping.com' },
+    { name:'Toptal',                url:'https://www.toptal.com/' },
+    { name:'AliExpress Dropshipping', url:'https://ds.aliexpress.com/find-products' },
+    { name:'Impact Radius',         url:'https://www.impact.com' },
+    { name:'ShareASale',            url:'https://www.shareasale.com' },
+    { name:'Redbubble',             url:'https://www.redbubble.com' },
+    { name:'Freepik Contributor',   url:'https://contributor.freepik.com' },
+    { name:'PayPal',                url:'https://www.paypal.com' },
+    { name:'Skrill',                url:'https://www.skrill.com' },
+    { name:'Wise',                  url:'https://wise.com' },
+    { name:'Etsy',                  url:'https://www.etsy.com/' },
+    { name:'Gumroad',               url:'https://gumroad.com/' },
+    { name:'SproutGigs',            url:'https://sproutgigs.com' },
+    { name:'Amazon Aff.',           url:'https://affiliate-program.amazon.com' }
+  ];
+
   const TAB_COLORS = ['#6366f1','#10b981','#f59e0b','#ef4444','#3b82f6','#8b5cf6','#ec4899','#14b8a6','#f97316','#6b7280'];
 
   let appData = { tabs:[] };
@@ -468,7 +543,7 @@ const DEFAULT_EARNING_BMS = [
       tabs:[
         { id: id1, name:'Daily', bookmarks: DEFAULT_BMS.map(b=>({id:uid(),...b})) },
         { id: id2, name:'AI Lab',    bookmarks: DEFAULT_AI_BMS.map(b=>({id:uid(),...b})) }, 
-{ id: uid(), name:'Work & Earn', bookmarks: DEFAULT_EARNING_BMS.map(b=>({id:uid(),...b})) }
+        { id: uid(), name:'Work & Earn', bookmarks: DEFAULT_EARNING_BMS.map(b=>({id:uid(),...b})) }
       ]
     };
     activeTabId = id1;
@@ -541,11 +616,9 @@ const DEFAULT_EARNING_BMS = [
 
     const term = document.getElementById('searchInput').value.toLowerCase();
 
-    // Agar active tab locked hai aur unlocked nahi
     const activeTabIsLocked = activeTab && activeTab.password && !unlockedTabs.has(activeTab.id);
 
     if(activeTabIsLocked) {
-      // Lock screen grid se BAHAR alag container mein dikhao
       lockContainer.innerHTML = `
         <div class="tab-locked-screen">
           <div class="lock-big-icon"><span class="material-icons" style="font-size:44px;color:#6366f1;">lock</span></div>
@@ -568,13 +641,11 @@ const DEFAULT_EARNING_BMS = [
       };
       document.getElementById('inlineUnlockBtn').onclick = doUnlock;
       document.getElementById('inlineUnlockInp').onkeydown = e => { if(e.key==='Enter') doUnlock(); };
-      // return nahi — grid mein unlocked tabs ke bookmarks render hote rahenge
     }
 
     let list = [];
 
     if(term) {
-      // Search: sirf unlocked tabs ke bookmarks
       appData.tabs.forEach(tab => {
         if(tab.password && !unlockedTabs.has(tab.id)) return;
         tab.bookmarks.forEach(bm => {
@@ -582,8 +653,7 @@ const DEFAULT_EARNING_BMS = [
         });
       });
     } else if(activeTabIsLocked) {
-      // Locked tab pe hain, search empty: kuch mat dikhao — sirf lock screen
-      // (search karne pe unlocked tabs ke results aayenge)
+      // kuch mat dikhao
     } else {
       if(activeTab) list = activeTab.bookmarks.map(b=>({...b,tabId:activeTabId}));
     }
@@ -675,25 +745,31 @@ const DEFAULT_EARNING_BMS = [
 
     setTimeout(()=>document.addEventListener('click', closeMenu, {once:true}), 10);
   }
-// ==========================================
-  // ONE PILOT SECURITY LOCK (Added by Gemini)
-  // ==========================================
-  
-  // 1. Right Click Block
+
+  // =====================================================
+  // SECURITY: Right Click + Inspect + View Source BLOCK
+  // (Anti-debugger crash loop hata diya — safe version)
+  // =====================================================
+
+  // 1. Right-click block
   document.addEventListener('contextmenu', e => e.preventDefault());
 
-  // 2. Keyboard Shortcuts Block (F12, Ctrl+U, Ctrl+Shift+I)
-  document.onkeydown = function(e) {
-      if (e.keyCode == 123) return false; 
-      if (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) return false;
-      if (e.ctrlKey && e.keyCode == 85) return false;
-  };
+  // 2. Keyboard shortcuts block
+  document.addEventListener('keydown', e => {
+    // F12
+    if (e.keyCode === 123) { e.preventDefault(); return false; }
+    // Ctrl+Shift+I / Ctrl+Shift+J (Inspect / Console)
+    if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) { e.preventDefault(); return false; }
+    // Ctrl+U (View Source)
+    if (e.ctrlKey && e.keyCode === 85) { e.preventDefault(); return false; }
+    // Ctrl+S (Save page)
+    if (e.ctrlKey && e.keyCode === 83) { e.preventDefault(); return false; }
+  });
 
-  // 3. Anti-Debugger (Code protection)
-  setInterval(() => { (function() { debugger; }).call(); }, 200);
-  
+  // 3. Console warning (safe — no debugger loop)
   console.log("%cStop!", "color:red; font-size:40px; font-weight:bold;");
-  console.log("Bahi, yahan se code copy karna mana hai!");
+  console.log("%cBahi, yahan se code copy karna mana hai!", "color:orange; font-size:16px;");
+
   function openColorPalette(tabId, anchorEl) {
     document.querySelectorAll('.inline-color-palette').forEach(p => p.remove());
     const t = appData.tabs.find(x => x.id === tabId);
@@ -767,13 +843,11 @@ const DEFAULT_EARNING_BMS = [
     nInp.value=''; uInp.value=''; saveData(); renderUI();
   };
 
-  // ✅ FIXED: Search Enter press - sirf unlocked tabs ke bookmarks open honge
   document.getElementById('searchInput').onkeydown=e=>{
     if(e.key==='Enter'){
       const val=e.target.value.toLowerCase();
       let found=null;
       appData.tabs.forEach(t=>{
-        // 🔒 Agar tab locked hai aur unlocked nahi => bilkul skip
         if(t.password && !unlockedTabs.has(t.id)) return;
         const b=t.bookmarks.find(x=>x.name.toLowerCase().includes(val));
         if(b) found=b;
@@ -804,6 +878,20 @@ const DEFAULT_EARNING_BMS = [
   document.addEventListener('click',e=>{if(!e.target.closest('.bookmark-card'))document.querySelectorAll('.bookmark-card').forEach(c=>c.classList.remove('show-context-menu'));});
 
   loadData();
+})();
+
+// =====================================================
+// FIX 3: Backup reminder banner logic
+// =====================================================
+function dismissBackupReminder() {
+  document.getElementById('backupReminderBanner').style.display = 'none';
+  localStorage.setItem('onepilot_backup_reminder_dismissed', '1');
+}
+(function() {
+  if(localStorage.getItem('onepilot_backup_reminder_dismissed') === '1') {
+    const b = document.getElementById('backupReminderBanner');
+    if(b) b.style.display = 'none';
+  }
 })();
 
 let chatHistory=JSON.parse(localStorage.getItem('ai_chat_history'))||[];
