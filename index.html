@@ -531,7 +531,38 @@
 
   function loadData() {
     const s = localStorage.getItem('onepilot_v3');
-    if(s) { appData = JSON.parse(s); activeTabId = appData.tabs[0]?.id; }
+    if(s) {
+      appData = JSON.parse(s);
+      activeTabId = appData.tabs[0]?.id;
+
+      // =====================================================
+      // MIGRATION: Purane users ko naye tabs automatically do
+      // =====================================================
+      let migrated = false;
+
+      // AI Lab tab check — agar nahi hai toh add karo
+      const hasAILab = appData.tabs.some(t => t.name === 'AI Lab');
+      if(!hasAILab) {
+        appData.tabs.splice(1, 0, {
+          id: uid(), name: 'AI Lab',
+          bookmarks: DEFAULT_AI_BMS.map(b => ({id:uid(),...b}))
+        });
+        migrated = true;
+      }
+
+      // Work & Earn tab check — agar nahi hai toh add karo
+      const hasWorkEarn = appData.tabs.some(t => t.name === 'Work & Earn');
+      if(!hasWorkEarn) {
+        appData.tabs.push({
+          id: uid(), name: 'Work & Earn',
+          bookmarks: DEFAULT_EARNING_BMS.map(b => ({id:uid(),...b}))
+        });
+        migrated = true;
+      }
+
+      if(migrated) saveData();
+      // =====================================================
+    }
     else { resetData(); }
     renderUI();
   }
