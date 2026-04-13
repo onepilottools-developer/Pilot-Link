@@ -360,48 +360,53 @@
     return changed;
   }
 
+  // ✅ Duplicates hatao — same URL wale extra cards remove karo
+  function removeDuplicates(tab) {
+    if(!tab) return;
+    const seen = new Set();
+    tab.bookmarks = tab.bookmarks.filter(b => {
+      if(seen.has(b.url)) return false;
+      seen.add(b.url);
+      return true;
+    });
+  }
+
+  // ✅ Tab ka order fix karo + missing add karo + duplicates hatao
+  function reorderTab(tabName, defaultList) {
+    const tab = appData.tabs.find(t => t.name === tabName);
+    if(!tab) return;
+    removeDuplicates(tab);
+    const existingMap = {};
+    tab.bookmarks.forEach(b => existingMap[b.url] = b);
+    const reordered = defaultList.map(def => existingMap[def.url] || { id: uid(), ...def });
+    tab.bookmarks.forEach(b => {
+      if(!defaultList.find(d => d.url === b.url)) reordered.push(b);
+    });
+    tab.bookmarks = reordered;
+  }
+
   function loadData() {
     const s = localStorage.getItem('onepilot_v3');
     if(s) {
       appData = JSON.parse(s);
       activeTabId = appData.tabs[0]?.id;
-      let migrated = false;
+
+      // ✅ Sabse pehle SAARI tabs ke duplicates hatao
+      appData.tabs.forEach(t => removeDuplicates(t));
 
       // AI Lab tab — agar nahi hai toh banao
-      const hasAILab = appData.tabs.some(t => t.name === 'AI Lab');
-      if(!hasAILab) {
+      if(!appData.tabs.some(t => t.name === 'AI Lab')) {
         appData.tabs.splice(1, 0, { id: uid(), name: 'AI Lab', bookmarks: DEFAULT_AI_BMS.map(b => ({id:uid(),...b})) });
-        migrated = true;
-      } else {
-        // ✅ AI Lab mein bhi missing cards check karo
-        if(migrateTab('AI Lab', DEFAULT_AI_BMS)) migrated = true;
       }
+      reorderTab('AI Lab', DEFAULT_AI_BMS);
 
       // Work & Earn tab — agar nahi hai toh banao
-      const hasWorkEarn = appData.tabs.some(t => t.name === 'Work & Earn');
-      if(!hasWorkEarn) {
+      if(!appData.tabs.some(t => t.name === 'Work & Earn')) {
         appData.tabs.push({ id: uid(), name: 'Work & Earn', bookmarks: DEFAULT_EARNING_BMS.map(b => ({id:uid(),...b})) });
-        migrated = true;
-      } else {
-        // ✅ Order bhi fix karo + missing cards bhi add karo
-        const weTab = appData.tabs.find(t => t.name === 'Work & Earn');
-        if(weTab) {
-          const existingMap = {};
-          weTab.bookmarks.forEach(b => existingMap[b.url] = b);
-          // DEFAULT order follow karo, missing bhi add karo
-          const reordered = DEFAULT_EARNING_BMS.map(def =>
-            existingMap[def.url] || { id: uid(), ...def }
-          );
-          // User ke manually added cards bachao (end mein)
-          weTab.bookmarks.forEach(b => {
-            if(!DEFAULT_EARNING_BMS.find(d => d.url === b.url)) reordered.push(b);
-          });
-          weTab.bookmarks = reordered;
-          migrated = true;
-        }
       }
+      reorderTab('Work & Earn', DEFAULT_EARNING_BMS);
 
-      if(migrated) saveData();
+      saveData();
     }
     else { resetData(); }
     renderUI();
