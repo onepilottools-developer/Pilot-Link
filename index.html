@@ -673,7 +673,7 @@
   document.getElementById('restoreBtn').onclick=()=>document.getElementById('restoreInput').click();
   document.getElementById('restoreInput').onchange=e=>{
     const r=new FileReader();
-    r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.tabs){appData=d;activeTabId=d.tabs[0].id;saveData();renderUI();}}catch{alert('Invalid Backup File');}};
+    r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.tabs){appData=d;appData.tabs.forEach(t=>removeDuplicates(t));activeTabId=d.tabs[0].id;saveData();renderUI();}}catch{alert('Invalid Backup File');}};
     if(e.target.files[0])r.readAsText(e.target.files[0]);
   };
 
